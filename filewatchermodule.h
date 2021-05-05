@@ -21,6 +21,8 @@ public:
     QString moveToPath() const;
     void setMoveToPath(const QString &moveToPath);
 
+    void deleteWatcher();
+
 private:
     QString mId;
     QString mWatchPath;
@@ -35,6 +37,7 @@ signals:
     void moveToPathChanged(QString);
     void selectedPrinterChanged(QString);
     void watchPathExists(bool exists);
+    void deleted();
 
 };
 

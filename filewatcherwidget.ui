@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>458</width>
-    <height>205</height>
+    <width>450</width>
+    <height>245</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -120,7 +120,7 @@
       <item>
        <widget class="QComboBox" name="comboBox_printer">
         <property name="focusPolicy">
-         <enum>Qt::ClickFocus</enum>
+         <enum>Qt::TabFocus</enum>
         </property>
        </widget>
       </item>
@@ -176,6 +176,13 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_delete">
+        <property name="text">
+         <string>FileWatcher löschen</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

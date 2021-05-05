@@ -4,6 +4,7 @@
 #include <QPrinterInfo>
 #include <QStandardPaths>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QDebug>
 
 FileWatcherWidget::FileWatcherWidget(FileWatcherModule *m, QWidget *parent) :
@@ -18,6 +19,7 @@ FileWatcherWidget::FileWatcherWidget(FileWatcherModule *m, QWidget *parent) :
     for (QPrinterInfo inf : QPrinterInfo::availablePrinters()) {
         ui->comboBox_printer->addItem(inf.description(), QVariant(inf.printerName()));
     }
+    ui->comboBox_printer->installEventFilter(this);
     ui->comboBox_printer->blockSignals(false);
 
     ui->label_path->setText(mModule->watchPath());
@@ -39,10 +41,21 @@ FileWatcherWidget::FileWatcherWidget(FileWatcherModule *m, QWidget *parent) :
             ui->label_errorMsg->setVisible(false);
         }
     });
+
+    connect(mModule, &FileWatcherModule::deleted, this, &FileWatcherWidget::deleteLater);
 }
 
 FileWatcherWidget::~FileWatcherWidget(){
     delete ui;
+}
+
+bool FileWatcherWidget::eventFilter(QObject *obj, QEvent *e){
+    if(e->type() == QEvent::Wheel){
+        QComboBox* combo = qobject_cast<QComboBox*>(obj);
+        if(combo && !combo->hasFocus())
+            return true;
+    }
+    return false;
 }
 
 void FileWatcherWidget::on_pushButton_changePath_clicked(){
@@ -50,10 +63,6 @@ void FileWatcherWidget::on_pushButton_changePath_clicked(){
                                                             QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
                                                             QFileDialog::ShowDirsOnly
                                                             | QFileDialog::DontResolveSymlinks));
-}
-
-void FileWatcherWidget::on_lineEdit_path_textEdited(const QString &arg1){
-    mModule->setWatchPath(arg1);
 }
 
 void FileWatcherWidget::on_comboBox_printer_currentIndexChanged(int index){
@@ -66,4 +75,25 @@ void FileWatcherWidget::on_pushButton_moveToPath_clicked(){
                                                             QFileDialog::ShowDirsOnly
                                                             | QFileDialog::DontResolveSymlinks));
 
+}
+
+void FileWatcherWidget::on_pushButton_delete_clicked(){
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setText("Wollen Sie den FileWatcher und seine Einstellungen wirklich löschen?");
+    msgBox.setInformativeText("Die Dateiüberwachung wird sofot beendet.");
+    msgBox.setStandardButtons(QMessageBox::Abort | QMessageBox::Yes);
+    msgBox.setDefaultButton(QMessageBox::Yes);
+    int ret = msgBox.exec();
+    switch (ret) {
+    case QMessageBox::Yes:
+        mModule->deleteWatcher();
+        break;
+    case QMessageBox::Abort:
+        msgBox.close();
+        break;
+    default:
+        // should never be reached
+        break;
+    }
 }

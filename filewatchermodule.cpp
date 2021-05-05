@@ -112,6 +112,16 @@ void FileWatcherModule::setMoveToPath(const QString &moveToPath){
     emit moveToPathChanged(mMoveToPath);
 }
 
+void FileWatcherModule::deleteWatcher(){
+    emit deleted();
+
+    //delete settings
+    QSettings settings(qApp->applicationName(), "Watchers");
+    settings.remove(mId);
+
+    this->deleteLater();
+}
+
 void FileWatcherModule::persistSettings(){
     QSettings settings(qApp->applicationName(), "Watchers");
 
