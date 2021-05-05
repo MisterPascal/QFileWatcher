@@ -12,6 +12,7 @@ FileWatcherWidget::FileWatcherWidget(FileWatcherModule *m, QWidget *parent) :
     mModule(m)
 {
     ui->setupUi(this);
+    ui->label_errorMsg->setVisible(false);
 
     ui->comboBox_printer->blockSignals(true);
     for (QPrinterInfo inf : QPrinterInfo::availablePrinters()) {
@@ -28,10 +29,19 @@ FileWatcherWidget::FileWatcherWidget(FileWatcherModule *m, QWidget *parent) :
     ui->comboBox_printer->setCurrentText(mModule->selectedPrinterName());
     connect(mModule, &FileWatcherModule::selectedPrinterChanged, ui->comboBox_printer, &QComboBox::setCurrentText);
 
+    connect(mModule, &FileWatcherModule::watchPathExists, this, [=](bool exists){
+        if(!exists){
+            ui->label_errorMsg->setText(QStringLiteral("Fehler: Überwachungsordner nicht gefunden!"));
+            ui->label_errorMsg->setVisible(true);
+        }
+        else{
+            ui->label_errorMsg->clear();
+            ui->label_errorMsg->setVisible(false);
+        }
+    });
 }
 
-FileWatcherWidget::~FileWatcherWidget()
-{
+FileWatcherWidget::~FileWatcherWidget(){
     delete ui;
 }
 

@@ -14,8 +14,8 @@
 
 #include <QDebug>
 
-FileWatcherModule::FileWatcherModule(const QString id, QObject *parent) : QObject(parent), mId(id)
-{
+FileWatcherModule::FileWatcherModule(const QString id, QObject *parent) : QObject(parent), mId(id){
+
     mWatcher = new QFileSystemWatcher(this);
 
     connect(this, &FileWatcherModule::watchPathChanged, this, [=]{
@@ -28,6 +28,13 @@ FileWatcherModule::FileWatcherModule(const QString id, QObject *parent) : QObjec
        qDebug() << "directory changed" <<  path;
 
        QDir directory(path);
+
+       //if dir was deleted...
+       if(!directory.exists()){
+           qDebug() << directory << "was deleted...";
+           emit watchPathExists(false);
+       }
+
        QStringList files = directory.entryList(QStringList() << "*.pdf", QDir::Files);
        if(!files.isEmpty()){
 
@@ -109,7 +116,6 @@ void FileWatcherModule::persistSettings(){
     QSettings settings(qApp->applicationName(), "Watchers");
 
     QString content;
-    //watchpath
     content.append(mWatchPath);
     content.append("|");
     content.append(mSelectedPrinterName);

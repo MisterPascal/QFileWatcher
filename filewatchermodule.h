@@ -34,6 +34,7 @@ signals:
     void watchPathChanged(QString);
     void moveToPathChanged(QString);
     void selectedPrinterChanged(QString);
+    void watchPathExists(bool exists);
 
 };
 
