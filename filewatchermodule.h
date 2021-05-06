@@ -2,6 +2,7 @@
 #define FILEWATCHERMODULE_H
 
 #include <QObject>
+#include <QPair>
 
 class QFileSystemWatcher;
 class QPrinterInfo;
@@ -29,8 +30,14 @@ private:
     QString mMoveToPath;
     QFileSystemWatcher *mWatcher;
     QString mSelectedPrinterName;
+    QList<QPair<QString, int>> mPrintableFileList; //first: absolute file path - second: print tries to stop after X tries
+    QString mCurrentFileInPrint;
 
     void persistSettings();
+
+private slots:
+    void handleChangedInPath(const QString &filePath);
+    void printFile(QString filePath);
 
 signals:
     void watchPathChanged(QString);

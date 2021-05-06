@@ -21,7 +21,7 @@
        <enum>Qt::WheelFocus</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -145,13 +145,34 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tab_4">
+       <attribute name="title">
+        <string>Log</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_8">
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_debug">
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Logs werden nur für aktuelle Sitzungen angezeigt und sind nach dem beenden nicht mehr verfügabr!</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
         <string>Über</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
-         <widget class="QLabel" name="label">
+         <widget class="QLabel" name="label_info">
           <property name="text">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fragen? Lizenz? Source Code? &lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/passi1995/QFileWatcher&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;QFileWatcher GitHub&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>

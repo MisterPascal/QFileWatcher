@@ -11,11 +11,17 @@
 #include <QStandardPaths>
 #include <QDebug>
 
+QTextEdit * MainWindow::mDebugTextEdit = nullptr;
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    mDebugTextEdit = new QTextEdit();
+    ui->verticalLayout_debug->addWidget(mDebugTextEdit);
+
     this->setWindowTitle(qApp->applicationName());
     ui->tabWidget->setCurrentIndex(0);
 
@@ -44,13 +50,13 @@ MainWindow::MainWindow(QWidget *parent)
     if(!settingsAutoStart.value(qApp->applicationName()).isNull()){
         ui->checkBox_autostart->setChecked(true);
     }
+
+    ui->label_info->setText(ui->label_info->text() + "\n Version " + qApp->applicationVersion());
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow(){
     delete ui;
 }
-
 
 void MainWindow::on_pushButton_addWatcher_clicked(){
     ui->verticalLayout_watchers->addWidget(new FileWatcherWidget(new FileWatcherModule(QUuid::createUuid().toString(QUuid::WithoutBraces)), this));

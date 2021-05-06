@@ -11,8 +11,12 @@
 #include <QThread>
 #include <QCoreApplication>
 #include <QSettings>
+#include <QTime>
+#include <QTimer>
 
 #include <QDebug>
+
+#define MAXPRINTTRIES 10
 
 FileWatcherModule::FileWatcherModule(const QString id, QObject *parent) : QObject(parent), mId(id){
 
@@ -24,59 +28,8 @@ FileWatcherModule::FileWatcherModule(const QString id, QObject *parent) : QObjec
         qDebug() << "watch path" << mWatchPath;
     });
 
-    connect(mWatcher, &QFileSystemWatcher::directoryChanged, this, [=](QString path){
-       qDebug() << "directory changed" <<  path;
+    connect(mWatcher, &QFileSystemWatcher::directoryChanged, this, &FileWatcherModule::handleChangedInPath);
 
-       QDir directory(path);
-
-       //if dir was deleted...
-       if(!directory.exists()){
-           qDebug() << directory << "was deleted...";
-           emit watchPathExists(false);
-       }
-
-       QStringList files = directory.entryList(QStringList() << "*.pdf", QDir::Files);
-       if(!files.isEmpty()){
-
-           qDebug() << "print" << files.first();
-           qDebug() << "on printer" << mSelectedPrinterName;
-           path.replace("/", "\\"); //we need to replace slashes cause pdf printer need backslashes
-
-           auto thread = new QThread;
-           auto process = new QProcess;
-
-           connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-               [=](int, QProcess::ExitStatus exitStatus){
-
-               if(exitStatus == QProcess::NormalExit){
-                   QFile file(path + "/" + files.first());
-                   if(file.exists()){
-                       QDir d(mMoveToPath);
-                       if(!d.exists())
-                           d.mkdir(mMoveToPath);
-
-                       const QString newPath = mMoveToPath + "/" + files.first();
-                       if(file.copy(newPath))
-                           file.remove();
-                   }
-               }
-
-               process->deleteLater();
-               process->thread()->quit();
-           });
-
-           QString s = qApp->property("exePath").toString() + " \"" + path + "\\" + files.first() + "\" \"" + mSelectedPrinterName + "\"";
-           qDebug() << s;
-           process->start(s);
-           process->moveToThread(thread);
-
-           // Move the thread **handle** to the main thread
-           thread->moveToThread(qApp->thread());
-           connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-           thread->start();
-
-       }
-    });
 }
 
 QString FileWatcherModule::watchPath() const{
@@ -133,4 +86,132 @@ void FileWatcherModule::persistSettings(){
     content.append(mMoveToPath);
 
     settings.setValue(mId, content);
+}
+
+void FileWatcherModule::handleChangedInPath(const QString &filePath){
+    QDir directory(filePath);
+
+    //if dir was deleted...
+    if(!directory.exists()){
+        qDebug() << directory << "was deleted...";
+        emit watchPathExists(false);
+    }
+
+    QStringList files = directory.entryList(QStringList() << "*.pdf", QDir::Files); //only names of the files eg "test.pdf"
+    if(!files.isEmpty()){
+
+        //there is the possibility that the signal to changed files is emitted just one time after many file changed - so we need to check every file in this slot
+
+        //check which file is not printed yet and add it to our printlist with printcounter = 0
+        for (const QString &f : files) {
+            bool fileIsKnown = false;
+            for (QPair<QString, int> content : mPrintableFileList) {
+                if(content.first == filePath + "/" + f){
+                    fileIsKnown = true;
+                    break;
+                }
+            }
+            if(!fileIsKnown){
+                mPrintableFileList.append(QPair<QString, int>(filePath + "/" + f, 0));
+            }
+        }
+
+        //print every file in printList with counter = 0 (never tried to printed before)
+
+        for (QPair<QString, int> content : mPrintableFileList) {
+            if(content.second == 0){
+                printFile(content.first);
+            }
+        }
+    }
+}
+
+void FileWatcherModule::printFile(QString filePath){
+    if(!mCurrentFileInPrint.isEmpty()){
+        qDebug() << "Printer is currently blocked by printing: " + mCurrentFileInPrint + " wait 2 seconds and try again";
+        QTimer::singleShot(2000, [=]{
+            printFile(filePath);
+        });
+        return;
+    }
+
+    QFile f(filePath);
+
+    //remove from list and retur if deleted while wait
+    if(!f.exists()){
+        for (int i = 0; i < mPrintableFileList.count(); ++i) {
+            if(mPrintableFileList.at(i).first == filePath){
+                mPrintableFileList.removeAt(i);
+                break;
+            }
+        }
+        return;
+    }
+
+    qDebug() << __FUNCTION__ << filePath << "on printer" << mSelectedPrinterName;
+
+    //count up the print tries or return if limit reached
+    for (int i = 0; i < mPrintableFileList.count(); ++i) {
+        if(mPrintableFileList.at(i).first == filePath){
+            if(mPrintableFileList.at(i).second == MAXPRINTTRIES)
+                return;
+
+            mPrintableFileList.replace(i, QPair<QString, int>(filePath, (mPrintableFileList.at(i).second + 1)));
+            break;
+        }
+    }
+
+    //if file not readable wait for 2 seconds and try to print it again - dont forget a counter to ensure we dont get in a loop: break after 10 tries
+    if(f.isOpen()){
+        QTimer::singleShot(2000, [=]{
+            printFile(filePath);
+        });
+        return;
+    }
+
+    filePath.replace("/", "\\"); //we need to replace slashes cause pdf printer need backslashes
+
+    auto process = new QProcess;
+
+    connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), [=](int, QProcess::ExitStatus exitStatus){
+
+        if(exitStatus == QProcess::NormalExit){
+            mCurrentFileInPrint.clear();
+
+            QFileInfo info(filePath);
+
+            qDebug() << info.fileName() << " printed!";
+
+            QFile file(filePath);
+            if(file.exists()){
+                QDir d(mMoveToPath);
+                if(!d.exists()){
+                    d.mkdir(mMoveToPath);
+                    qDebug() << "goal dir " << mMoveToPath << " created";
+                }
+
+                const QString newPath = mMoveToPath + "/" + info.fileName();
+                if(file.copy(newPath))
+                    file.remove();
+                qDebug() << info.fileName() << " moved to " << mMoveToPath;
+            }
+
+            //remove from print list
+            for (int i = 0; i < mPrintableFileList.count(); ++i) {
+                QString pathSlashFix = filePath;
+                pathSlashFix = pathSlashFix.replace("\\", "/");
+                if(mPrintableFileList.at(i).first == pathSlashFix){
+                    mPrintableFileList.removeAt(i);
+                    break;
+                }
+            }
+        }
+
+        process->deleteLater();
+    });
+
+    QString s = qApp->property("exePath").toString() + " \"" + filePath + "\" \"" + mSelectedPrinterName + "\"";
+    qDebug() << "call print queue" << s;
+    mCurrentFileInPrint = filePath;
+    process->start(s);
 }
