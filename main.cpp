@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
     a.setApplicationName("QFileWatcher");
-    a.setApplicationVersion("0.2");
+    a.setApplicationVersion("0.3");
 
     QTranslator qtTranslator;
     if (qtTranslator.load(QLocale::system(), "qt", "_", QLibraryInfo::location(QLibraryInfo::TranslationsPath))){
