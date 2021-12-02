@@ -191,8 +191,20 @@ void FileWatcherModule::printFile(QString filePath){
                 }
 
                 const QString newPath = mMoveToPath + "/" + info.fileName();
+
+
+                QFileInfo goalFileInfo(newPath);
+                QFile goalFile(newPath);
+
+                if(goalFile.exists()){
+                    QString newFileName = goalFileInfo.baseName() + "_renamed_cause_multiple_" + QDateTime::currentDateTime().toString("dd_MM_yyyy_hh_mm_ss") + "." + goalFileInfo.completeSuffix();
+                    goalFile.rename(goalFileInfo.absolutePath() + QDir::separator() + newFileName);
+                    qDebug() << "File renamed cause its already existing in the goal directory - new file name: " + newFileName;
+                }
+
                 if(file.copy(newPath))
                     file.remove();
+
                 qDebug() << info.fileName() << " moved to " << mMoveToPath;
             }
 

@@ -41,10 +41,13 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 
 int main(int argc, char *argv[])
 {
+#ifndef QT_DEBUG
     qInstallMessageHandler(myMessageOutput);
+#endif
+
     QApplication a(argc, argv);
     a.setApplicationName("QFileWatcher");
-    a.setApplicationVersion("0.3");
+    a.setApplicationVersion("0.4");
 
     QTranslator qtTranslator;
     if (qtTranslator.load(QLocale::system(), "qt", "_", QLibraryInfo::location(QLibraryInfo::TranslationsPath))){
